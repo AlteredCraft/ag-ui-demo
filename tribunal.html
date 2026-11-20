@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Tribunal · an AG-UI demo</title>
+    <link rel="stylesheet" href="/src/tribunal/style.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <h1>The Tribunal</h1>
+        <p>Pitch an idea. Three AI judges react at the same time, you argue back, the Chair rules. A demo of subagents in the <a href="https://docs.ag-ui.com/introduction" target="_blank" rel="noreferrer">AG-UI</a> protocol.</p>
+      </div>
+      <nav>
+        <span id="brain" class="pill"></span>
+        <button class="pill link" type="button" data-reset>New pitch</button>
+        <a class="pill link" href="/">Other demo: The Test Kitchen →</a>
+      </nav>
+    </header>
+
+    <section id="guide" class="guide" aria-live="polite"></section>
+
+    <main>
+      <section id="bench" class="bench"></section>
+      <section id="gauge" class="gauge" aria-label="Panel average"></section>
+      <section id="judges" class="judges" aria-label="The judges"></section>
+      <section id="chair" class="chair" hidden></section>
+
+      <section class="wire" aria-label="The stream, demultiplexed">
+        <h2>One stream, many voices <small id="wireCount">Every tick is one AG-UI event on the same connection, sorted into lanes by its subagentRunId. Click a tick to read it.</small></h2>
+        <div id="lanes" class="lanes"></div>
+        <pre id="inspect" class="inspect" hidden></pre>
+      </section>
+    </main>
+    <script type="module" src="/src/tribunal/main.ts"></script>
+  </body>
+</html>

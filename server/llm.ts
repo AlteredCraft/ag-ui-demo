@@ -33,7 +33,13 @@ export function streamTurn(input: TurnInput): AsyncGenerator<Chunk> {
   return liveModel() ? openRouterTurn(input) : scriptedTurn(input);
 }
 
-async function* openRouterTurn({ messages, tools, signal }: TurnInput): AsyncGenerator<Chunk> {
+/** One streamed model turn via OpenRouter. Shared by every demo in this repo. */
+export async function* openRouterTurn({
+  messages,
+  tools,
+  signal,
+  reasoning = true,
+}: Pick<TurnInput, "messages" | "tools" | "signal"> & { reasoning?: boolean }): AsyncGenerator<Chunk> {
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     signal,
@@ -42,7 +48,7 @@ async function* openRouterTurn({ messages, tools, signal }: TurnInput): AsyncGen
       model: liveModel(),
       stream: true,
       max_tokens: 3000,
-      reasoning: { max_tokens: 1024 }, // surfaces as REASONING_* events
+      ...(reasoning && { reasoning: { max_tokens: 1024 } }), // surfaces as REASONING_* events
       messages,
       tools: tools.map((t) => ({ type: "function", function: t })),
     }),

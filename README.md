@@ -1,10 +1,11 @@
-# The Test Kitchen
+# AG-UI demos
 
-An [AG-UI](https://docs.ag-ui.com/introduction) demo. You name a topic, a line-cook agent turns it into an article brief on a live order ticket, and a wire tap shows every protocol event that made it happen.
+Two small apps that show what the [AG-UI](https://docs.ag-ui.com/introduction) protocol does, built without an agent framework. Each server is a few hundred lines of TypeScript that reads a `RunAgentInput` and writes AG-UI events over SSE. The browsers use the official `@ag-ui/client`.
 
-![Order up: the agent rings the bell in the browser after the human picks a headline](docs/order-up.png)
-
-There is no agent framework here. The server is about 200 lines of TypeScript that reads a `RunAgentInput` and writes AG-UI events over SSE. The browser uses the official `@ag-ui/client`. That makes it a good place to see what the protocol itself does.
+| | What it is | What it shows off |
+| --- | --- | --- |
+| **[The Test Kitchen](#the-test-kitchen)** (`/`) | Chat with a chef who writes an article brief onto a live ticket you can both edit | Shared state, streaming tool calls, activity progress, frontend tools, a choice interrupt |
+| **[The Tribunal](#the-tribunal)** (`/tribunal.html`) | Pitch an idea to three judges who react at the same time, argue back, get a verdict | Parallel subagents on one stream, a form interrupt generated from a schema |
 
 ## Run it
 
@@ -16,11 +17,17 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. One process serves both the UI and the agent endpoint (`POST /agent`).
+Open http://localhost:5173 for the Test Kitchen and http://localhost:5173/tribunal.html for the Tribunal. One process serves the pages and both agent endpoints.
 
-With no API key the kitchen runs a scripted chef that speaks exactly the same protocol. For a real model, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`. `KITCHEN_MODEL` takes any OpenRouter model that supports tool calling.
+With no API key both demos run scripted agents that speak exactly the same protocol. For a real model, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`. `KITCHEN_MODEL` takes any OpenRouter model that supports tool calling.
 
-## Things to try
+## The Test Kitchen
+
+You name a topic, a line-cook agent turns it into an article brief on a live order ticket, and a wire tap shows every protocol event that made it happen.
+
+![Order up: the agent rings the bell in the browser after the human picks a headline](docs/order-up.png)
+
+### Things to try
 
 The bar across the top always says which step you are on and whose turn it is.
 
@@ -31,7 +38,7 @@ The bar across the top always says which step you are on and whose turn it is.
 5. Hit Stop mid-run, then carry on.
 6. Click any row in the wire tap for the raw JSON.
 
-## What each part demonstrates
+### What each part demonstrates
 
 | You see | AG-UI feature | Where |
 | --- | --- | --- |
@@ -53,6 +60,35 @@ The bar across the top always says which step you are on and whose turn it is.
 
 ![The run is paused on an interrupt until the human picks a headline](docs/interrupt.png)
 
+## The Tribunal
+
+No chat this time. You pitch an idea, three judges (an on-call SRE, a venture capitalist and a staff engineer) react **at the same moment**, you get one rebuttal, and the Chair stamps a verdict.
+
+![Three judges streaming their takes at the same time](docs/tribunal-speaking.png)
+
+Each judge is its own model call, running concurrently. Their events are interleaved on a single SSE connection, and every one carries a `subagentRunId` so the browser can route each token to the right card. The lanes at the bottom of the page draw that stream as it arrives.
+
+### Things to try
+
+1. Click a starter pitch and watch all three cards type at once.
+2. Write a rebuttal and watch the scores and the average move. Or skip it and go straight to the ruling.
+3. Click ticks in the lanes to read individual events, and compare the lanes with what the cards were doing.
+
+### What each part demonstrates
+
+| You see | AG-UI feature | Where |
+| --- | --- | --- |
+| Three cards typing at once | `SUBAGENT_STARTED / FINISHED`, and `subagentRunId` on every text, tool and state event | `server/tribunal.ts` |
+| The glowing "speaking" border | Subagent lifecycle events | `src/tribunal/main.ts` |
+| Score rings and the average gauge | Tool calls from each subagent, applied as `STATE_DELTA` patches | `server/tribunal.ts` |
+| The rebuttal form | An `input_required` interrupt. The form is generated from its `responseSchema`, and your text goes back in `RunAgentInput.resume` | both |
+| Scores moving after you argue | The resumed run reads round one from shared state: the server kept nothing | `server/tribunal.ts` |
+| The Chair's ruling | Text on the main run, with no `subagentRunId` | `server/tribunal.ts` |
+| The stamp (and confetti, or a screen shake) | A frontend tool the Chair calls and the browser runs | `src/tribunal/main.ts` |
+| The swim lanes | The raw event stream, demultiplexed by `subagentRunId` | `src/tribunal/lanes.ts` |
+
+![The verdict, with scores moved by the rebuttal and the stream drawn as lanes](docs/tribunal-verdict.png)
+
 ## How it fits together
 
 ```
@@ -61,17 +97,20 @@ src/wiretap.ts   the event log
 server/agent.ts  the AG-UI endpoint: RunAgentInput in, event stream out
 server/kitchen.ts  the ticket, the server tools, and the JSON Patch each one emits
 server/llm.ts    OpenRouter streaming, plus the scripted chef
-vite.config.ts   mounts the endpoint on Vite's dev server
+server/tribunal.ts   the Tribunal's endpoint: parallel subagents on one stream
+src/tribunal/    the Tribunal's page and its swim-lane view of the stream
+vite.config.ts   mounts both endpoints on Vite's dev server
 ```
 
-Three design points worth noticing:
+Design points worth noticing (the first four are the Kitchen, the last the Tribunal):
 
 - **The server holds no session.** Messages, the ticket, and even a paused run arrive in each request. An interrupt's id encodes the tool call it is waiting on and the prep list to update, so the resume request carries everything needed to continue.
 - **The UI's guidance comes from the protocol, not from guesswork.** Whose turn it is comes from run state and pending interrupts, progress from activity events, next steps from the agent.
 - **Server tools run as each call finishes streaming**, not at the end of the model's turn. That is why the ticket fills in one course at a time.
 - **A frontend tool call ends the run without a result.** The browser executes it, appends a `tool` message, and starts a follow-up run so the agent can react. See `run()` in `src/main.ts`.
+- **Subagents are just tagged events.** The Tribunal runs three model calls with `Promise.all` and writes their events to the same response as they arrive. The `subagentRunId` on each event is all the client needs to untangle them.
 
 ## Notes
 
 - Built against AG-UI 1.0 (`@ag-ui/client`, `@ag-ui/core`, `@ag-ui/encoder` 1.0.5).
-- This is a demo: there is no auth or rate limiting on `/agent`, so don't expose it publicly with a key configured.
+- This is a demo: there is no auth or rate limiting on the agent endpoints, so don't expose it publicly with a key configured.

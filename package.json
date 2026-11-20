@@ -1,9 +1,9 @@
 {
-  "name": "ag-ui-test-kitchen",
+  "name": "ag-ui-demos",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "The Test Kitchen — a hand-rolled AG-UI agent that cooks article briefs on a live shared ticket.",
+  "description": "Two hand-rolled AG-UI demos: The Test Kitchen and The Tribunal.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

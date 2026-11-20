@@ -21,6 +21,7 @@ export interface Ticket {
   garnish: string[]; // hooks, pull quotes, one-liners
   headlines: string[]; // options the chef proposed
   chosenHeadline: string | null;
+  suggestions: string[]; // what the chef thinks the diner might ask next
 }
 
 export type PatchOp =
@@ -36,6 +37,7 @@ export const emptyTicket = (): Ticket => ({
   garnish: [],
   headlines: [],
   chosenHeadline: null,
+  suggestions: [],
 });
 
 /** Client state is untrusted input: coerce it into a well-formed ticket. */
@@ -57,6 +59,7 @@ export function normalizeTicket(raw: unknown): Ticket {
   if (Array.isArray(r.garnish)) t.garnish = r.garnish.slice(0, 8).map((g) => str(g)).filter(Boolean);
   if (Array.isArray(r.headlines)) t.headlines = r.headlines.slice(0, 6).map((h) => str(h)).filter(Boolean);
   t.chosenHeadline = typeof r.chosenHeadline === "string" ? str(r.chosenHeadline) : null;
+  if (Array.isArray(r.suggestions)) t.suggestions = r.suggestions.slice(0, 4).map((x) => str(x, 80)).filter(Boolean);
   return t;
 }
 
@@ -76,6 +79,8 @@ const s = (description: string) => ({ type: "string", description });
 
 /** The one tool that pauses the run and hands control to the human. */
 export const HEADLINE_TOOL = "propose_headlines";
+/** Ends a turn on its own: there is nothing for the model to say after it. */
+export const SUGGEST_TOOL = "suggest_next";
 
 export const serverTools: ToolDef[] = [
   {
@@ -85,6 +90,11 @@ export const serverTools: ToolDef[] = [
       { dish: s("Topic, 3-8 words"), angle: s("The specific take, one sentence"), audience: s("Who this is for, a short phrase") },
       ["dish", "angle", "audience"],
     ),
+  },
+  {
+    name: "set_spice",
+    description: "Turn the spice dial when the diner asks for a hotter or milder take. Then rewrite the angle and sections to match.",
+    parameters: obj({ level: { type: "integer", minimum: 1, maximum: 5 } }, ["level"]),
   },
   {
     name: "add_course",
@@ -115,6 +125,12 @@ export const serverTools: ToolDef[] = [
       "Put 3-4 headline options in front of the diner and WAIT for them to pick. The run pauses until they answer. Call it alone, as the last tool in a turn.",
     parameters: obj({ options: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 } }, ["options"]),
   },
+  {
+    name: SUGGEST_TOOL,
+    description:
+      "Show the diner 3 tappable follow-up requests, specific to this ticket, phrased the way the diner would type them (max 7 words each). Replaces the previous suggestions.",
+    parameters: obj({ options: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 } }, ["options"]),
+  },
 ];
 
 let seq = 0;
@@ -135,6 +151,10 @@ export function runServerTool(t: Ticket, name: string, args: Record<string, any>
         }
       }
       return { ops, result: "ticket written" };
+    }
+    case "set_spice": {
+      t.spice = Math.min(5, Math.max(1, Math.round(Number(args.level) || t.spice)));
+      return { ops: [{ op: "replace", path: "/spice", value: t.spice }], result: `spice is now ${t.spice}` };
     }
     case "add_course": {
       if (t.courses.length >= 12) return { ops: [], result: "error: the ticket is full (12 courses)" };
@@ -170,12 +190,16 @@ export function runServerTool(t: Ticket, name: string, args: Record<string, any>
         result: "", // filled in by the human, on resume
       };
     }
+    case SUGGEST_TOOL: {
+      t.suggestions = (Array.isArray(args.options) ? args.options : []).map((x) => String(x).slice(0, 80)).slice(0, 4);
+      return { ops: [{ op: "replace", path: "/suggestions", value: t.suggestions }], result: "shown to the diner" };
+    }
     default:
       return { ops: [], result: `error: unknown tool ${name}` };
   }
 }
 
-export function systemPrompt(t: Ticket): string {
+export function systemPrompt(t: Ticket, context: { description: string; value: string }[] = []): string {
   return `You are Chef, head of the Test Kitchen: a brisk, funny line cook who turns a raw topic into a tight article brief for a publication about building software with AI. You talk in kitchen slang ("heard", "on the fly", "86 it", "order up") but the work itself is sharp and specific.
 
 You cook on a shared TICKET the diner watches update live. Never paste the outline into chat. The ticket is the deliverable, chat is just banter (1-3 short sentences per turn, no markdown, no emoji).
@@ -185,16 +209,21 @@ Cooking a new dish, in order:
 2. add_course 4-5 times: an outline that builds an argument, not a listicle.
 3. add_garnish 1-2 times.
 4. propose_headlines with 3-4 options, as the final call. The kitchen stops until the diner picks.
-5. After they pick (or send it back), react in one line, call ring_bell, and stop.
+5. After they pick (or send it back), react in one line and, in that same turn, call ring_bell and suggest_next. Then stop.
 
 Do steps 1-4 in a single turn with one sentence of banter first.
 
-After service, the diner may ask for changes. Edit the existing ticket with update_course / remove_course / add_course rather than starting over, and only propose headlines again if asked. The diner can also edit the ticket by hand. Always trust the current ticket below over your memory.
+After service, the diner may ask for changes. Edit the existing ticket with update_course / remove_course / add_course rather than starting over, and only propose headlines again if asked. In the same turn as those edits, call suggest_next with fresh follow-ups that fit the ticket as it now stands (concrete edits like "Add a section on cost", never generic ones).
 
-SPICE is the diner's dial from 1 (mild, balanced explainer) to 5 (scorching, contrarian hot take). Match the angle, section titles and headlines to it.
+The diner can also edit the ticket by hand. Always trust the current ticket below over your memory. If the dining room context lists hand edits, acknowledge them in a few words and work with them, never undo them.
+
+SPICE is a dial both of you can turn (you with set_spice, only when asked), from 1 (mild, balanced explainer) to 5 (scorching, contrarian hot take). Match the angle, section titles and headlines to it.
 
 The dining room has tools too: set_kitchen_vibe redecorates the room when the diner asks for a different mood, ring_bell announces a finished dish. Never call either in the same turn as propose_headlines.
 
 CURRENT TICKET (JSON):
-${JSON.stringify(t)}`;
+${JSON.stringify({ ...t, suggestions: undefined })}
+
+DINING ROOM CONTEXT (sent by the diner's browser):
+${context.map((c) => `- ${c.description}: ${c.value}`).join("\n") || "- none"}`;
 }

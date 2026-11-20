@@ -10,11 +10,16 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { EventType, type BaseEvent, type Message, type RunAgentInput } from "@ag-ui/core";
 import { EventEncoder } from "@ag-ui/encoder";
-import { HEADLINE_TOOL, normalizeTicket, runServerTool, serverTools, systemPrompt, type ToolDef } from "./kitchen.ts";
+import { HEADLINE_TOOL, SUGGEST_TOOL, normalizeTicket, runServerTool, serverTools, systemPrompt, type ToolDef } from "./kitchen.ts";
 import { liveModel, streamTurn, type ChatMessage } from "./llm.ts";
 
 const MAX_TURNS = 6;
-const INTERRUPT_PREFIX = "headline:";
+const INTERRUPT_PREFIX = "headline|";
+const PREP_ACTIVITY = "kitchen.prep";
+const PREP_STEPS = ["Topic and angle", "Outline", "Hooks", "Headline options", "Your headline pick", "Serve"];
+const YOUR_MOVE = 4; // index of the step only the human can complete
+
+type PrepItem = { label: string; status: "todo" | "doing" | "you" | "done"; detail?: string };
 
 export async function handleRun(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "POST") return void res.writeHead(405).end();
@@ -57,8 +62,38 @@ async function cook(input: RunAgentInput, emit: Emit, signal: AbortSignal) {
   const frontendTools: ToolDef[] = (input.tools ?? []).map(({ name, description, parameters }) => ({ name, description, parameters }));
   const isFrontend = (name: string) => frontendTools.some((t) => t.name === name);
 
+  const context = (input.context ?? []).map((c) => ({ description: String(c.description).slice(0, 80), value: String(c.value).slice(0, 600) }));
+  const resumed = (input.resume ?? []).length > 0;
+  const newOrder = !resumed && input.messages.at(-1)?.role === "user";
+  if (newOrder) ticket.suggestions = []; // last turn's suggestions are stale now
+
   emit({ type: EventType.RUN_STARTED, threadId, runId });
   emit({ type: EventType.STATE_SNAPSHOT, snapshot: ticket });
+
+  // The prep list is an ACTIVITY message: structured progress the UI renders
+  // as a checklist, patched in place as the work moves along.
+  let prepId: string | null = null;
+  let prep: PrepItem[] = [];
+  const prepSnapshot = (id: string, items: PrepItem[]) => {
+    prepId = id;
+    prep = items;
+    emit({ type: EventType.ACTIVITY_SNAPSHOT, messageId: id, activityType: PREP_ACTIVITY, content: { title: "Prep list", items: prep } });
+  };
+  /** Everything before `current` is done; `current` is in progress (or waiting on the human). */
+  const prepAdvance = (current: number, detail?: string) => {
+    if (!prepId) return;
+    const ops: unknown[] = [];
+    prep.forEach((item, i) => {
+      const status = i < current ? "done" : i === current ? (i === YOUR_MOVE ? "you" : "doing") : item.status;
+      if (status !== item.status) ops.push({ op: "replace", path: `/items/${i}/status`, value: (item.status = status) });
+    });
+    if (detail && prep[current] && prep[current].detail !== detail) ops.push({ op: "add", path: `/items/${current}/detail`, value: (prep[current].detail = detail) });
+    if (ops.length) emit({ type: EventType.ACTIVITY_DELTA, messageId: prepId, activityType: PREP_ACTIVITY, patch: ops });
+  };
+  if (newOrder && ticket.courses.length === 0) {
+    prepSnapshot(`prep-${runId}`, PREP_STEPS.map((label, i) => ({ label, status: i === 0 ? "doing" : "todo" })));
+    history.push({ id: prepId!, role: "activity", activityType: PREP_ACTIVITY, content: { title: "Prep list", items: prep } });
+  }
   emit({ type: EventType.CUSTOM, name: "kitchen.brain", value: liveModel() ?? "scripted chef (no API key)" });
 
   const patch = (ops: unknown[]) => ops.length && emit({ type: EventType.STATE_DELTA, delta: ops });
@@ -79,10 +114,10 @@ async function cook(input: RunAgentInput, emit: Emit, signal: AbortSignal) {
   };
 
   // Resuming a paused run: the human's answer becomes the result of the tool call that paused it.
-  const resumed = (input.resume ?? []).length > 0;
+  // The interrupt id carries what we need to pick up where we left off: no session store.
   for (const entry of input.resume ?? []) {
     if (!entry.interruptId.startsWith(INTERRUPT_PREFIX)) throw new Error(`unknown interrupt ${entry.interruptId}`);
-    const toolCallId = entry.interruptId.slice(INTERRUPT_PREFIX.length);
+    const [, toolCallId, activityId] = entry.interruptId.split("|");
     const choice = (entry.payload as { choice?: unknown } | undefined)?.choice;
     if (entry.status === "resolved" && typeof choice === "string" && ticket.headlines.includes(choice)) {
       ticket.chosenHeadline = choice;
@@ -91,6 +126,15 @@ async function cook(input: RunAgentInput, emit: Emit, signal: AbortSignal) {
     } else {
       toolResult(toolCallId, "The diner sent it back: none of these. Do not propose more unless asked.");
     }
+    if (activityId)
+      prepSnapshot(
+        activityId,
+        PREP_STEPS.map((label, i) => ({
+          label,
+          status: i <= YOUR_MOVE ? "done" : "doing",
+          ...(i === YOUR_MOVE && { detail: ticket.chosenHeadline ? "picked" : "sent back" }),
+        })),
+      );
   }
   flushResults();
 
@@ -136,12 +180,16 @@ async function cook(input: RunAgentInput, emit: Emit, signal: AbortSignal) {
       }
       const { ops, result } = runServerTool(ticket, c.name, args);
       patch(ops);
+      if (c.name === "set_ticket") prepAdvance(1);
+      if (c.name === "add_course") prepAdvance(1, `${ticket.courses.length} section${ticket.courses.length === 1 ? "" : "s"}`);
+      if (c.name === "add_garnish") prepAdvance(2, `${ticket.garnish.length} hooks`);
+      if (c.name === HEADLINE_TOOL) prepAdvance(YOUR_MOVE, `${ticket.headlines.length} options`);
       if (c.name === HEADLINE_TOOL && ticket.headlines.length >= 2 && !interruptCall) interruptCall = c.id;
       else toolResult(c.id, result || "error: need at least two options");
     };
 
     const tools = [...serverTools, ...frontendTools];
-    const turnInput = { messages: [{ role: "system" as const, content: systemPrompt(ticket) }, ...chat], tools, ticket, signal };
+    const turnInput = { messages: [{ role: "system" as const, content: systemPrompt(ticket, context) }, ...answeredOnly(chat)], tools, ticket, signal };
     for await (const chunk of streamTurn(turnInput)) {
       switch (chunk.type) {
         case "reasoning":
@@ -204,10 +252,10 @@ async function cook(input: RunAgentInput, emit: Emit, signal: AbortSignal) {
           type: "interrupt",
           interrupts: [
             {
-              id: INTERRUPT_PREFIX + interruptCall,
+              id: `${INTERRUPT_PREFIX}${interruptCall}|${prepId ?? ""}`,
               reason: "tool_call",
               toolCallId: interruptCall,
-              message: "Pick a headline to finish the dish.",
+              message: "Which headline should this article run with?",
               responseSchema: { type: "object", properties: { choice: { type: "string", enum: ticket.headlines } }, required: ["choice"] },
               metadata: { "ag-ui:tool-execution": "server" },
             },
@@ -220,9 +268,26 @@ async function cook(input: RunAgentInput, emit: Emit, signal: AbortSignal) {
     flushResults();
     emit({ type: EventType.STEP_FINISHED, stepName });
     if (awaitingBrowser || calls.length === 0) break;
+    if (calls.every((c) => c.name === SUGGEST_TOOL)) break; // nothing left to say after suggestions
   }
 
+  if (resumed) prepAdvance(PREP_STEPS.length); // served
+
   emit({ type: EventType.RUN_FINISHED, threadId, runId, outcome: { type: "success" } });
+}
+
+/**
+ * A stopped run can leave tool calls that never got a result. Models reject
+ * that history, so drop the orphans before each request.
+ */
+function answeredOnly(chat: ChatMessage[]): ChatMessage[] {
+  const answered = new Set(chat.flatMap((m) => (m.role === "tool" ? [m.tool_call_id] : [])));
+  return chat.flatMap((m) => {
+    if (m.role !== "assistant" || !m.tool_calls) return [m];
+    const tool_calls = m.tool_calls.filter((c) => answered.has(c.id));
+    if (!tool_calls.length && !m.content) return [];
+    return [{ role: "assistant" as const, content: m.content, ...(tool_calls.length && { tool_calls }) }];
+  });
 }
 
 /** AG-UI messages -> chat-completions messages. Reasoning and activity rows are UI-only. */

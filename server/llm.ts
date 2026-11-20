@@ -6,7 +6,7 @@
  * The AG-UI layer in agent.ts cannot tell them apart, which is the point:
  * the protocol sits between agent and UI, not between agent and model.
  */
-import { HEADLINE_TOOL, type Ticket, type ToolDef } from "./kitchen.ts";
+import { HEADLINE_TOOL, SUGGEST_TOOL, type Ticket, type ToolDef } from "./kitchen.ts";
 
 export type Chunk =
   | { type: "reasoning"; delta: string }
@@ -121,6 +121,7 @@ async function* scriptedTurn({ messages, tools, ticket }: TurnInput): AsyncGener
       const sentBack = last.content.includes("sent it back");
       yield* say(sentBack ? "Heard. Scrapping the menu board, you name it yourself. " : "Good palate. That one sells itself. ");
       if (has("ring_bell")) yield* call("ring_bell", { message: ticket.chosenHeadline ?? ticket.dish });
+      yield* call(SUGGEST_TOOL, { options: ["Add a section on cost", "Make the opener punchier", "Fine dining, please"] });
       return;
     }
     if (name === "ring_bell") return yield* say("Order up! Tweak the ticket by hand or shout if you want it re-fired.");
@@ -138,10 +139,11 @@ async function* scriptedTurn({ messages, tools, ticket }: TurnInput): AsyncGener
   if (ticket.courses.length > 0) {
     yield* mutter("Ticket's already on the rail. One more course, keep it tight. ");
     yield* say("Heard, adding a course on the fly. ");
-    return yield* call("add_course", {
+    yield* call("add_course", {
       title: "The part everyone skips",
       note: `Per the diner: "${last.content.slice(0, 80)}". Address it head on, with one concrete example.`,
     });
+    return yield* call(SUGGEST_TOOL, { options: ["Tighten the outline", "Add a counterargument section", "Food truck vibes"] });
   }
 
   const dish = last.content.replace(/^(cook|write|make)( me)?( up)?:?\s*/i, "").slice(0, 60) || "something off-menu";

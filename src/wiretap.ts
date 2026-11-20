@@ -15,6 +15,7 @@ function family(type: string) {
   if (type.startsWith("TOOL_")) return "tool";
   if (type.startsWith("STATE_") || type.startsWith("MESSAGES_")) return "state";
   if (type.startsWith("REASONING_")) return "reason";
+  if (type.startsWith("ACTIVITY_")) return "act";
   return "misc";
 }
 
@@ -28,6 +29,8 @@ function summarize(e: any): string {
     case "TOOL_CALL_RESULT": return e.content;
     case "STATE_SNAPSHOT": return `${Object.keys(e.snapshot ?? {}).length} keys`;
     case "STATE_DELTA": return e.delta.map((op: any) => `${op.op} ${op.path}`).join(", ");
+    case "ACTIVITY_SNAPSHOT": return `${e.activityType} · ${e.content?.items?.length ?? 0} items`;
+    case "ACTIVITY_DELTA": return e.patch.map((op: any) => `${op.path} = ${op.value}`).join(", ");
     case "MESSAGES_SNAPSHOT": return `${e.messages.length} messages`;
     case "CUSTOM": return `${e.name} = ${JSON.stringify(e.value)}`;
     default: return "";
@@ -52,7 +55,7 @@ export class WireTap {
 
   outbound(input: RunAgentInput) {
     this.t0 = performance.now();
-    const bits = [`${input.messages.length} msgs`, `${input.tools?.length ?? 0} tools`, input.state ? "state" : "", input.resume?.length ? `resume ×${input.resume.length}` : ""];
+    const bits = [`${input.messages.length} msgs`, `${input.tools?.length ?? 0} tools`, input.state ? "state" : "", input.context?.length ? `${input.context.length} context` : "", input.resume?.length ? `resume ×${input.resume.length}` : ""];
     this.row("out", "▲ POST /agent", `RunAgentInput · ${bits.filter(Boolean).join(" · ")}`, input);
   }
 

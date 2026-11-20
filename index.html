@@ -12,35 +12,36 @@
         <span class="brand-mark" aria-hidden="true">✦</span>
         <div>
           <h1>The Test Kitchen</h1>
-          <p>Raw topic in, article brief out. Every byte between chef and dining room is <a href="https://docs.ag-ui.com/introduction" target="_blank" rel="noreferrer">AG-UI</a>.</p>
+          <p>Give the chef a topic and get back an article brief: angle, outline, hooks and a headline you choose. A demo of the <a href="https://docs.ag-ui.com/introduction" target="_blank" rel="noreferrer">AG-UI</a> protocol.</p>
         </div>
       </div>
       <div class="status">
-        <span id="brain" class="pill pill-quiet" title="Which model is cooking">…</span>
-        <span id="step" class="pill">idle</span>
-        <button id="reset" class="ghost" type="button">Clear the table</button>
+        <span id="brain" class="pill pill-quiet" title="Which model is cooking"></span>
+        <button id="reset" class="ghost" type="button">Start over</button>
       </div>
     </header>
 
+    <section id="guide" class="guide" aria-live="polite"></section>
+
     <main class="floor">
       <section class="panel pass" aria-label="Chat with the chef">
-        <h2>The Pass <small>chat</small></h2>
+        <h2>The Pass <small>talk to the chef</small></h2>
         <div id="chat" class="chat" aria-live="polite"></div>
         <div id="chips" class="chips"></div>
         <form id="order" class="order">
-          <input id="orderInput" autocomplete="off" placeholder="Order an article topic…" aria-label="Message the chef" />
-          <button type="submit">Fire</button>
+          <input id="orderInput" autocomplete="off" placeholder="What should the article be about?" aria-label="Message the chef" />
+          <button type="submit">Send</button>
         </form>
       </section>
 
       <section class="panel rail" aria-label="The ticket: shared state">
-        <h2>The Ticket <small>shared state</small></h2>
+        <h2>The Ticket <small>your article brief</small><button id="copy" class="ghost copy" type="button" hidden>Copy brief</button></h2>
         <div id="ticket"></div>
       </section>
 
       <section class="panel tap" aria-label="Wire tap: raw AG-UI events">
         <h2>
-          Wire Tap <small id="tapCount">0 events</small>
+          Wire Tap <small>what AG-UI sent · <span id="tapCount">0 events</span></small>
           <label class="toggle"><input id="collapse" type="checkbox" checked /> fold streams</label>
         </h2>
         <div id="tap" class="tap-log"></div>

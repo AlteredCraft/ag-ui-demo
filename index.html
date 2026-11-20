@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" data-vibe="diner">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Test Kitchen · an AG-UI demo</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <div>
+          <h1>The Test Kitchen</h1>
+          <p>Raw topic in, article brief out. Every byte between chef and dining room is <a href="https://docs.ag-ui.com/introduction" target="_blank" rel="noreferrer">AG-UI</a>.</p>
+        </div>
+      </div>
+      <div class="status">
+        <span id="brain" class="pill pill-quiet" title="Which model is cooking">…</span>
+        <span id="step" class="pill">idle</span>
+        <button id="reset" class="ghost" type="button">Clear the table</button>
+      </div>
+    </header>
+
+    <main class="floor">
+      <section class="panel pass" aria-label="Chat with the chef">
+        <h2>The Pass <small>chat</small></h2>
+        <div id="chat" class="chat" aria-live="polite"></div>
+        <div id="chips" class="chips"></div>
+        <form id="order" class="order">
+          <input id="orderInput" autocomplete="off" placeholder="Order an article topic…" aria-label="Message the chef" />
+          <button type="submit">Fire</button>
+        </form>
+      </section>
+
+      <section class="panel rail" aria-label="The ticket: shared state">
+        <h2>The Ticket <small>shared state</small></h2>
+        <div id="ticket"></div>
+      </section>
+
+      <section class="panel tap" aria-label="Wire tap: raw AG-UI events">
+        <h2>
+          Wire Tap <small id="tapCount">0 events</small>
+          <label class="toggle"><input id="collapse" type="checkbox" checked /> fold streams</label>
+        </h2>
+        <div id="tap" class="tap-log"></div>
+      </section>
+    </main>
+
+    <div id="banner" class="banner" role="status"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

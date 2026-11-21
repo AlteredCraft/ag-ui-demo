@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AG-UI Field Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: one reading column of prose, with figures and tables allowed to run wider. Event names are
+   always colored by family, using the same code as the demos' own wire tap. */
+:root {
+  --bg: #f4f5fa; --surface: #ffffff; --ink: #161a2e; --muted: #596080; --line: #d8dbea;
+  --accent: #3442c9; --without: #a5452b;
+  --k-life: #2866c4; --k-text: #1b7f4b; --k-tool: #9a5c00; --k-state: #b82c80; --k-act: #0b7f89; --k-sub: #6340b8;
+  --j1: #0b7f9c; --j2: #c22272; --j3: #5c7d10;
+  --display: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --body: Inter, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1120; --surface: #181b30; --ink: #eceefb; --muted: #a0a5c6; --line: #2d3152;
+    --accent: #97a2ff; --without: #ff9d80;
+    --k-life: #6cb6ff; --k-text: #57d38c; --k-tool: #f0b354; --k-state: #f778ba; --k-act: #39c5cf; --k-sub: #b79cf5;
+    --j1: #4cc9f0; --j2: #ff5fa8; --j3: #b8f35a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1120; --surface: #181b30; --ink: #eceefb; --muted: #a0a5c6; --line: #2d3152;
+  --accent: #97a2ff; --without: #ff9d80;
+  --k-life: #6cb6ff; --k-text: #57d38c; --k-tool: #f0b354; --k-state: #f778ba; --k-act: #39c5cf; --k-sub: #b79cf5;
+  --j1: #4cc9f0; --j2: #ff5fa8; --j3: #b8f35a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
+.page { max-width: 1040px; margin: 0 auto; padding-block: 40px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 56px; }
+section, header { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: clamp(23px, 3.2vw, 30px); font-weight: 700; }
+h3 { font-size: 18px; font-weight: 500; }
+p, ul { margin: 0; max-width: 68ch; }
+ul { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font: 600 12px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 19px; color: var(--muted); }
+a { color: var(--accent); }
+code, .ev { font-family: var(--mono); font-size: 0.86em; }
+.ev { font-weight: 600; white-space: nowrap; }
+.life { color: var(--k-life); } .text { color: var(--k-text); } .tool { color: var(--k-tool); }
+.state { color: var(--k-state); } .act { color: var(--k-act); } .sub { color: var(--k-sub); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 12.5px var(--mono); color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: currentColor; margin-right: 6px; }
+.legend span { white-space: nowrap; }
+.legend b { color: var(--muted); font-weight: 400; }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+figcaption { font-size: 14px; color: var(--muted); max-width: 72ch; }
+.plate { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow-x: auto; }
+.plate svg { display: block; width: 100%; height: auto; }
+.plate.wide svg { min-width: 720px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.pair h3 { margin-bottom: 8px; }
+.pair .no h3 { color: var(--without); } .pair .yes h3 { color: var(--accent); }
+
+/* SVG drawing classes */
+.b { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.ghost { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.l { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.la { stroke: var(--accent); stroke-width: 2; fill: none; } .fa { fill: var(--accent); }
+.lw { stroke: var(--without); stroke-width: 1.6; fill: none; } .fw { fill: var(--without); }
+.fi { fill: var(--ink); }
+.life-l { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 5; }
+.t { fill: var(--ink); font: 500 13px var(--body); }
+.th { fill: var(--ink); font: 700 15px var(--display); }
+.m { fill: var(--ink); font: 600 11.5px var(--mono); }
+.mm { fill: var(--muted); font: 11px var(--mono); }
+.tm { fill: var(--muted); font: 12px var(--body); }
+.band { fill: var(--bg); stroke: var(--line); }
+.f-life { fill: var(--k-life); } .f-text { fill: var(--k-text); } .f-tool { fill: var(--k-tool); }
+.f-state { fill: var(--k-state); } .f-act { fill: var(--k-act); } .f-sub { fill: var(--k-sub); }
+.f-acc { fill: var(--accent); } .f-wo { fill: var(--without); }
+.j1 { stroke: var(--j1); } .j2 { stroke: var(--j2); } .j3 { stroke: var(--j3); }
+.fj1 { fill: var(--j1); } .fj2 { fill: var(--j2); } .fj3 { fill: var(--j3); }
+.jb { fill: var(--surface); stroke-width: 2; } .jl { fill: none; stroke-width: 1.6; }
+
+/* annotated screenshots */
+.shot { position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; line-height: 0; }
+.shot img { width: 100%; height: auto; display: block; }
+.pin { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg); font: 600 14px/28px var(--mono); text-align: center; box-shadow: 0 0 0 3px var(--bg), 0 2px 8px rgba(0, 0, 0, 0.4); }
+.keys { list-style: none; padding: 0; max-width: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px 24px; font-size: 14.5px; }
+.keys li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: start; min-width: 0; }
+.keys i { font: 600 12px/22px var(--mono); width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--bg); text-align: center; font-style: normal; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 680px; font-size: 14.5px; line-height: 1.45; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 11.5px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+th.yes { color: var(--accent); } th.no { color: var(--without); }
+td:first-child { font-weight: 600; width: 22%; }
+td:nth-child(2) { width: 39%; }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px 40px; }
+.cols > div { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 12px 36px; }
+.facts div { min-width: 150px; }
+.facts b { display: block; font: 700 30px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.facts span { font-size: 13.5px; color: var(--muted); }
+footer { font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 18px; }
+</style>
+
+</head>
+<body>
+<div class="page">
+<header>
+  <span class="eyebrow">AG-UI in practice</span>
+  <h1>What AG-UI did in the Test Kitchen and the Tribunal</h1>
+  <p class="lede">AG-UI is a contract for the conversation between an agent and a user interface. This guide shows where it sat in the two demos, which events did which job, and what the same apps would need if you built them without it.</p>
+  <div class="legend" aria-label="Event color code used throughout">
+    <b>Event families:</b>
+    <span class="life">run and step</span><span class="text">text</span><span class="tool">tool calls</span>
+    <span class="state">shared state</span><span class="act">activity</span><span class="sub">subagents</span>
+  </div>
+</header>
+
+<section>
+  <h2>Where it sits</h2>
+  <p>AG-UI is two things: the shape of the request the browser sends, and the vocabulary of events the agent streams back. It says nothing about which model you call or how your agent loop works. Both demo servers are hand-written and call the model directly.</p>
+  <figure>
+    <div class="plate">
+      <svg viewBox="0 0 880 230" role="img" aria-label="The browser posts a RunAgentInput to the agent endpoint, and the agent answers with one stream of typed events.">
+        <defs>
+          <marker id="aA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fa"/></marker>
+        </defs>
+        <rect class="b" x="20" y="40" width="230" height="150" rx="8"/>
+        <text class="th" x="135" y="78" text-anchor="middle">Browser</text>
+        <text class="m" x="135" y="104" text-anchor="middle">@ag-ui/client</text>
+        <text class="tm" x="135" y="128" text-anchor="middle">applies events for you:</text>
+        <text class="tm" x="135" y="146" text-anchor="middle">keeps messages and state</text>
+        <rect class="b" x="630" y="40" width="230" height="150" rx="8"/>
+        <text class="th" x="745" y="78" text-anchor="middle">Agent endpoint</text>
+        <text class="tm" x="745" y="104" text-anchor="middle">your code, any language</text>
+        <text class="tm" x="745" y="128" text-anchor="middle">calls the model,</text>
+        <text class="tm" x="745" y="146" text-anchor="middle">runs the tools</text>
+        <line class="la" x1="254" y1="85" x2="624" y2="85" marker-end="url(#aA)"/>
+        <text class="m" x="440" y="72" text-anchor="middle">POST  RunAgentInput</text>
+        <text class="mm" x="440" y="103" text-anchor="middle">messages · state · tools · context · resume</text>
+        <line class="la" x1="626" y1="155" x2="256" y2="155" marker-end="url(#aA)"/>
+        <text class="m" x="440" y="142" text-anchor="middle">one stream of typed events (SSE)</text>
+        <text class="mm" x="440" y="173" text-anchor="middle">text · tool calls · state patches · progress · pauses</text>
+      </svg>
+    </div>
+    <figcaption>Every interaction in both demos is this one round trip, repeated. There is no second endpoint and no socket.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>The same app, with and without</h2>
+  <p>Nothing in the demos is impossible without AG-UI. The difference is how many things you have to invent. Here is the Test Kitchen's traffic drawn both ways. The left side is a typical hand-rolled design, not something I built and measured.</p>
+  <div class="pair">
+    <figure class="no">
+      <h3>Hand-rolled</h3>
+      <div class="plate">
+        <svg viewBox="0 0 460 340" role="img" aria-label="Without AG-UI: five separate channels between browser and server, each with its own message format, plus a server-side store for paused runs.">
+          <defs>
+            <marker id="aW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fw"/></marker>
+          </defs>
+          <rect class="b" x="10" y="20" width="90" height="250" rx="8"/><text class="th" x="55" y="46" text-anchor="middle">Browser</text>
+          <rect class="b" x="360" y="20" width="90" height="250" rx="8"/><text class="th" x="405" y="46" text-anchor="middle">Server</text>
+          <text class="mm" x="230" y="62" text-anchor="middle">POST /chat, text chunks back</text>
+          <line class="lw" x1="356" y1="70" x2="104" y2="70" marker-end="url(#aW)"/>
+          <text class="mm" x="230" y="107" text-anchor="middle">socket: your ticket-update format</text>
+          <line class="lw" x1="356" y1="115" x2="104" y2="115" marker-end="url(#aW)" marker-start="url(#aW)"/>
+          <text class="mm" x="230" y="152" text-anchor="middle">GET /progress, polled</text>
+          <line class="lw" x1="104" y1="160" x2="356" y2="160" marker-end="url(#aW)"/>
+          <text class="mm" x="230" y="197" text-anchor="middle">POST /approve/:runId</text>
+          <line class="lw" x1="104" y1="205" x2="356" y2="205" marker-end="url(#aW)"/>
+          <text class="mm" x="230" y="242" text-anchor="middle">socket: your UI-command format</text>
+          <line class="lw" x1="356" y1="250" x2="104" y2="250" marker-end="url(#aW)"/>
+          <line class="lw" x1="405" y1="270" x2="405" y2="290"/>
+          <rect class="b" x="350" y="290" width="110" height="38" rx="19" style="stroke:var(--without)"/>
+          <text class="mm f-wo" x="405" y="313" text-anchor="middle">paused runs</text>
+        </svg>
+      </div>
+      <figcaption>Five channels, each with a message format, a client parser and a failure mode you design. A paused run has to live in a store on the server until the user answers.</figcaption>
+    </figure>
+    <figure class="yes">
+      <h3>With AG-UI</h3>
+      <div class="plate">
+        <svg viewBox="0 0 460 340" role="img" aria-label="With AG-UI: one POST and one event stream carry everything, and the server keeps no paused-run store.">
+          <defs>
+            <marker id="aB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fa"/></marker>
+          </defs>
+          <rect class="b" x="10" y="20" width="90" height="250" rx="8"/><text class="th" x="55" y="46" text-anchor="middle">Browser</text>
+          <rect class="b" x="360" y="20" width="90" height="250" rx="8"/><text class="th" x="405" y="46" text-anchor="middle">Server</text>
+          <text class="m" x="230" y="107" text-anchor="middle">POST RunAgentInput</text>
+          <line class="la" x1="104" y1="115" x2="356" y2="115" marker-end="url(#aB)"/>
+          <text class="m" x="230" y="180" text-anchor="middle">one stream of typed events</text>
+          <rect x="118" y="190" width="238" height="30" rx="15" class="b" style="stroke:var(--accent)"/>
+          <path d="M104 205 L120 196 L120 214 z" class="fa"/>
+          <g>
+            <rect class="f-life" x="134" y="197" width="6" height="16" rx="1"/><rect class="f-state" x="146" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-act" x="158" y="197" width="6" height="16" rx="1"/><rect class="f-text" x="170" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-text" x="182" y="197" width="6" height="16" rx="1"/><rect class="f-tool" x="194" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-tool" x="206" y="197" width="6" height="16" rx="1"/><rect class="f-state" x="218" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-act" x="230" y="197" width="6" height="16" rx="1"/><rect class="f-tool" x="242" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-tool" x="254" y="197" width="6" height="16" rx="1"/><rect class="f-state" x="266" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-text" x="278" y="197" width="6" height="16" rx="1"/><rect class="f-tool" x="290" y="197" width="6" height="16" rx="1"/>
+            <rect class="f-state" x="302" y="197" width="6" height="16" rx="1"/><rect class="f-life" x="326" y="197" width="6" height="16" rx="1"/>
+          </g>
+          <text class="mm" x="230" y="240" text-anchor="middle">text · tools · state · pauses</text>
+          <rect class="ghost" x="350" y="290" width="110" height="38" rx="19"/>
+          <text class="mm" x="405" y="313" text-anchor="middle">no store</text>
+        </svg>
+      </div>
+      <figcaption>The same traffic as one request and one stream. A pause is the last event of a run, and the answer rides in the next request, so the server has nothing to remember.</figcaption>
+    </figure>
+  </div>
+  <p>You could fold the five channels into one socket with your own message types. Many teams do. At that point you have written a private version of this protocol, and only your own client can speak it.</p>
+</section>
+
+<section>
+  <h2>The Test Kitchen, piece by piece</h2>
+  <p>A chat with a chef who writes an article brief onto a ticket that both of you can edit. The screenshot is the moment the run is paused, waiting for a headline.</p>
+  <figure>
+    <div class="shot">
+      <img src="kitchen.jpg" alt="The Test Kitchen paused on a headline decision, with the chat, the ticket and the wire tap side by side" width="1400" height="875">
+      <span class="pin" style="left:91.5%;top:12%">1</span><span class="pin" style="left:36%;top:55%">2</span>
+      <span class="pin" style="left:33%;top:66%">3</span><span class="pin" style="left:54%;top:20.5%">4</span>
+      <span class="pin" style="left:79%;top:20.5%">5</span>
+    </div>
+    <ul class="keys">
+      <li><i>1</i><span><b>Whose turn it is.</b> Read from the run's outcome and the client's list of pending interrupts.</span></li>
+      <li><i>2</i><span><b>Tool chips.</b> One per <span class="ev tool">TOOL_CALL_START</span>, ticked when its <span class="ev tool">TOOL_CALL_RESULT</span> arrives.</span></li>
+      <li><i>3</i><span><b>The decision card.</b> Built from the interrupt's own question and its list of allowed answers.</span></li>
+      <li><i>4</i><span><b>The ticket.</b> A rendering of shared state, patched by <span class="ev state">STATE_DELTA</span>.</span></li>
+      <li><i>5</i><span><b>The wire tap.</b> The raw event stream. Because every event is typed, this inspector is about 100 lines.</span></li>
+    </ul>
+  </figure>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>On screen</th><th class="yes">With AG-UI</th><th class="no">Without it, you design</th></tr></thead>
+      <tbody>
+        <tr><td>The ticket fills in live</td><td><span class="ev state">STATE_SNAPSHOT</span> once, then <span class="ev state">STATE_DELTA</span> JSON Patches. The client applies them to <code>agent.state</code>.</td><td>An update message format, merge code in the browser, and a rule for when to resend everything.</td></tr>
+        <tr><td>Sections type themselves before they are saved</td><td><span class="ev tool">TOOL_CALL_ARGS</span> streams the half-written arguments. The client hands back repaired partial JSON to preview.</td><td>A second stream for drafts, or waiting until each section is complete.</td></tr>
+        <tr><td>The prep-list checklist</td><td><span class="ev act">ACTIVITY_SNAPSHOT</span>, then <span class="ev act">ACTIVITY_DELTA</span> patches to the same message.</td><td>A progress endpoint to poll, or your own progress messages.</td></tr>
+        <tr><td>The pause for a headline</td><td><span class="ev life">RUN_FINISHED</span> with <code>outcome: interrupt</code>. The answer returns as <code>resume</code> in the next request.</td><td>An approval endpoint, a store of paused runs with expiry, and a way to tie an answer to its run.</td></tr>
+        <tr><td>Bell, confetti, redecorating</td><td>The browser lists its tools in the request. The agent calls one with ordinary <span class="ev tool">TOOL_CALL_*</span> events and the browser runs it.</td><td>A private command channel, plus a way to tell the model what this UI can do.</td></tr>
+        <tr><td>Your hand edits reach the chef</td><td>The edited ticket rides in the next request as <code>state</code>, and what you changed as <code>context</code>.</td><td>A save endpoint and a sync rule between your edits and the agent's.</td></tr>
+        <tr><td>"Chef suggests" chips</td><td>A tool writes suggestions into shared state. No new mechanism.</td><td>One more message type.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>One brief, three runs</h3>
+  <figure>
+    <div class="plate wide">
+      <svg viewBox="0 0 880 520" role="img" aria-label="Sequence of a Test Kitchen brief: run one ends on an interrupt, run two resumes with the user's choice and ends on a browser tool call, run three delivers the result of that tool.">
+        <defs>
+          <marker id="aC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fa"/></marker>
+          <marker id="aI" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="fi"/></marker>
+        </defs>
+        <rect class="b" x="60" y="10" width="180" height="34" rx="6"/><text class="th" x="150" y="32" text-anchor="middle">Browser</text>
+        <rect class="b" x="640" y="10" width="180" height="34" rx="6"/><text class="th" x="730" y="32" text-anchor="middle">Agent endpoint</text>
+        <line class="life-l" x1="150" y1="44" x2="150" y2="510"/><line class="life-l" x1="730" y1="44" x2="730" y2="510"/>
+
+        <text class="mm" x="14" y="84">Run 1</text>
+        <text class="m" x="440" y="73" text-anchor="middle">POST RunAgentInput: 1 message, 2 browser tools, state {spice: 4}</text>
+        <line class="la" x1="154" y1="80" x2="724" y2="80" marker-end="url(#aC)"/>
+        <text class="m" x="440" y="108" text-anchor="middle"><tspan class="f-life">RUN_STARTED</tspan> · <tspan class="f-state">STATE_SNAPSHOT</tspan> · <tspan class="f-act">ACTIVITY_SNAPSHOT</tspan> (prep list)</text>
+        <line class="l" x1="726" y1="115" x2="156" y2="115" marker-end="url(#aI)"/>
+        <text class="m" x="440" y="143" text-anchor="middle"><tspan class="f-text">REASONING_*</tspan> · <tspan class="f-text">TEXT_MESSAGE_*</tspan> (the chef talks)</text>
+        <line class="l" x1="726" y1="150" x2="156" y2="150" marker-end="url(#aI)"/>
+        <text class="m" x="440" y="178" text-anchor="middle"><tspan class="f-tool">TOOL_CALL_START/ARGS/END</tspan> → <tspan class="f-state">STATE_DELTA</tspan> → <tspan class="f-tool">TOOL_CALL_RESULT</tspan>, per section</text>
+        <line class="l" x1="726" y1="185" x2="156" y2="185" marker-end="url(#aI)"/>
+        <text class="m" x="440" y="213" text-anchor="middle"><tspan class="f-life">RUN_FINISHED</tspan> outcome: interrupt. The connection closes.</text>
+        <line class="l" x1="726" y1="220" x2="156" y2="220" marker-end="url(#aI)"/>
+
+        <rect class="band" x="60" y="240" width="760" height="40" rx="6"/>
+        <text class="t" x="440" y="265" text-anchor="middle">You pick a headline. No connection is open and the server remembers nothing.</text>
+
+        <text class="mm" x="14" y="309">Run 2</text>
+        <text class="m" x="440" y="298" text-anchor="middle">POST RunAgentInput: resume [{interruptId, payload: {choice}}] + state</text>
+        <line class="la" x1="154" y1="305" x2="724" y2="305" marker-end="url(#aC)"/>
+        <text class="m" x="440" y="333" text-anchor="middle"><tspan class="f-tool">TOOL_CALL_RESULT</tspan> · <tspan class="f-state">STATE_DELTA</tspan> /chosenHeadline · <tspan class="f-text">TEXT_MESSAGE_*</tspan></text>
+        <line class="l" x1="726" y1="340" x2="156" y2="340" marker-end="url(#aI)"/>
+        <text class="m" x="440" y="368" text-anchor="middle"><tspan class="f-tool">TOOL_CALL_*</tspan> ring_bell, left unanswered · <tspan class="f-life">RUN_FINISHED</tspan></text>
+        <line class="l" x1="726" y1="375" x2="156" y2="375" marker-end="url(#aI)"/>
+
+        <rect class="band" x="60" y="395" width="760" height="40" rx="6"/>
+        <text class="t" x="440" y="420" text-anchor="middle">The browser runs ring_bell itself: bell, confetti, banner.</text>
+
+        <text class="mm" x="14" y="464">Run 3</text>
+        <text class="m" x="440" y="453" text-anchor="middle">POST RunAgentInput: messages now include the tool's result</text>
+        <line class="la" x1="154" y1="460" x2="724" y2="460" marker-end="url(#aC)"/>
+        <text class="m" x="440" y="488" text-anchor="middle"><tspan class="f-text">TEXT_MESSAGE_*</tspan> · <tspan class="f-life">RUN_FINISHED</tspan> outcome: success</text>
+        <line class="l" x1="726" y1="495" x2="156" y2="495" marker-end="url(#aI)"/>
+      </svg>
+    </div>
+    <figcaption>Human input and browser-side tools both work the same way: the run ends, and the next request carries what happened. Any server instance can take run two, because run one left nothing behind.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>The Tribunal, piece by piece</h2>
+  <p>No chat. Three judges react to a pitch at the same moment, you get one rebuttal, and a Chair stamps the verdict. This demo exists to show one thing the Kitchen does not: several agents talking over one connection.</p>
+  <figure>
+    <div class="shot">
+      <img src="tribunal.jpg" alt="The Tribunal with all three judge cards streaming text at once, and swim lanes of events below" width="1400" height="984">
+      <span class="pin" style="left:50%;top:60%">1</span><span class="pin" style="left:94%;top:36%">2</span><span class="pin" style="left:24%;top:77%">3</span>
+    </div>
+    <ul class="keys">
+      <li><i>1</i><span><b>Three cards typing at once.</b> Each judge is a separate model call. Their tokens arrive interleaved.</span></li>
+      <li><i>2</i><span><b>The glow.</b> On at <span class="ev sub">SUBAGENT_STARTED</span>, off at <span class="ev sub">SUBAGENT_FINISHED</span>.</span></li>
+      <li><i>3</i><span><b>The lanes.</b> The same stream, sorted by the id on each event.</span></li>
+    </ul>
+  </figure>
+
+  <figure>
+    <div class="plate wide">
+      <svg viewBox="0 0 880 290" role="img" aria-label="Three concurrent model calls write tagged events into one HTTP response, and the browser sorts them back into three cards by subagentRunId.">
+        <defs>
+          <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="fj1"/></marker>
+          <marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="fj2"/></marker>
+          <marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="fj3"/></marker>
+        </defs>
+        <text class="mm" x="100" y="18" text-anchor="middle">server: 3 model calls at once</text>
+        <text class="mm" x="780" y="18" text-anchor="middle">browser: 3 cards</text>
+        <rect class="jb j1" x="20" y="35" width="160" height="46" rx="8"/><text class="t" x="100" y="63" text-anchor="middle">Pager (SRE)</text>
+        <rect class="jb j2" x="20" y="120" width="160" height="46" rx="8"/><text class="t" x="100" y="148" text-anchor="middle">Blitz (VC)</text>
+        <rect class="jb j3" x="20" y="205" width="160" height="46" rx="8"/><text class="t" x="100" y="233" text-anchor="middle">Dr. No (staff eng)</text>
+        <path class="jl j1" d="M180 58 C230 58 240 128 276 132" marker-end="url(#m1)"/>
+        <path class="jl j2" d="M180 143 L276 143" marker-end="url(#m2)"/>
+        <path class="jl j3" d="M180 228 C230 228 240 158 276 154" marker-end="url(#m3)"/>
+
+        <text class="m" x="440" y="98" text-anchor="middle">one HTTP response</text>
+        <rect class="b" x="280" y="113" width="320" height="60" rx="30"/>
+        <g>
+          <rect class="fj3" x="304" y="128" width="6" height="30" rx="1"/><rect class="fj1" x="316" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj2" x="328" y="128" width="6" height="30" rx="1"/><rect class="fj1" x="340" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj1" x="352" y="128" width="6" height="30" rx="1"/><rect class="fj3" x="364" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj2" x="376" y="128" width="6" height="30" rx="1"/><rect class="fj3" x="388" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj1" x="400" y="128" width="6" height="30" rx="1"/><rect class="fj2" x="412" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj2" x="424" y="128" width="6" height="30" rx="1"/><rect class="fj1" x="436" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj3" x="448" y="128" width="6" height="30" rx="1"/><rect class="fj1" x="460" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj2" x="472" y="128" width="6" height="30" rx="1"/><rect class="fj3" x="484" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj3" x="496" y="128" width="6" height="30" rx="1"/><rect class="fj2" x="508" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj1" x="520" y="128" width="6" height="30" rx="1"/><rect class="fj2" x="532" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj3" x="544" y="128" width="6" height="30" rx="1"/><rect class="fj1" x="556" y="128" width="6" height="30" rx="1"/>
+          <rect class="fj2" x="568" y="128" width="6" height="30" rx="1"/>
+        </g>
+        <text class="mm" x="440" y="195" text-anchor="middle">every event carries its judge's subagentRunId</text>
+        <text class="mm" x="440" y="213" text-anchor="middle"><tspan class="f-sub">SUBAGENT_STARTED</tspan> · <tspan class="f-text">TEXT</tspan> · <tspan class="f-tool">TOOL_CALL</tspan> · <tspan class="f-state">STATE_DELTA</tspan> · <tspan class="f-sub">SUBAGENT_FINISHED</tspan></text>
+
+        <path class="jl j1" d="M600 132 C640 128 650 58 696 58" marker-end="url(#m1)"/>
+        <path class="jl j2" d="M600 143 L696 143" marker-end="url(#m2)"/>
+        <path class="jl j3" d="M600 154 C640 158 650 228 696 228" marker-end="url(#m3)"/>
+        <rect class="jb j1" x="700" y="35" width="160" height="46" rx="8"/><text class="t" x="780" y="63" text-anchor="middle">Pager's card</text>
+        <rect class="jb j2" x="700" y="120" width="160" height="46" rx="8"/><text class="t" x="780" y="148" text-anchor="middle">Blitz's card</text>
+        <rect class="jb j3" x="700" y="205" width="160" height="46" rx="8"/><text class="t" x="780" y="233" text-anchor="middle">Dr. No's card</text>
+        <text class="mm" x="648" y="278" text-anchor="middle">routed by subagentRunId</text>
+        <text class="mm" x="232" y="278" text-anchor="middle">written as they arrive</text>
+      </svg>
+    </div>
+    <figcaption>The server runs the three calls with one <code>Promise.all</code> and writes each event to the response the moment it has it. The id on every event is all the browser needs to untangle them.</figcaption>
+  </figure>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>On screen</th><th class="yes">With AG-UI</th><th class="no">Without it, you design</th></tr></thead>
+      <tbody>
+        <tr><td>Three judges typing at once</td><td><span class="ev sub">SUBAGENT_STARTED / FINISHED</span>, and a <code>subagentRunId</code> on each judge's text, tool and state events.</td><td>Three connections to manage, or your own channel ids and routing on one.</td></tr>
+        <tr><td>Scores and the average gauge</td><td>Each judge calls a <code>score</code> tool, applied as a <span class="ev state">STATE_DELTA</span>. The gauge is just a reading of state.</td><td>A score message type, and client code to keep the totals right.</td></tr>
+        <tr><td>The rebuttal form</td><td>An <code>input_required</code> interrupt. The form is generated from its <code>responseSchema</code>, and the text returns in <code>resume</code>.</td><td>A hard-coded form for this question, and another for the next one.</td></tr>
+        <tr><td>Scores move after you argue</td><td>Round one's takes and scores live in shared state and come back with the resume request.</td><td>A session on the server holding round one.</td></tr>
+        <tr><td>The verdict stamp</td><td>The Chair calls a browser tool, <code>stamp_verdict</code>.</td><td>A private command channel, as in the Kitchen.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>What it cost, and what it did not do</h2>
+  <div class="facts">
+    <div><b>2</b><span>HTTP endpoints for two whole apps</span></div>
+    <div><b>0</b><span>bytes of session kept on the server</span></div>
+    <div><b>287</b><span>events for one Kitchen brief, up to the pause</span></div>
+    <div><b>365</b><span>events for one Tribunal session with a rebuttal</span></div>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Still our job</h3>
+      <ul>
+        <li><b>The agent loop.</b> Calling the model, running tools and deciding when to stop is about 300 lines per server (<code>agent.ts</code> 309, <code>tribunal.ts</code> 351).</li>
+        <li><b>Every pixel.</b> The protocol says a tool was called. Drawing a chip, a ticket or a score ring is ordinary frontend work.</li>
+        <li><b>Edits during a run.</b> The Kitchen locks the ticket while the chef works. AG-UI carries state both ways but does not merge simultaneous edits for you.</li>
+        <li><b>Persistence.</b> Reload either page and the conversation is gone.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Rough edges we hit</h3>
+      <ul>
+        <li><b>The stream is chatty.</b> Hundreds of small events per run. Fine over SSE, but a raw log needs folding to be readable.</li>
+        <li><b>Docs trail the SDK.</b> The JavaScript encoder page was empty, and helpers such as <code>addMessage</code> and <code>pendingInterrupts</code> were found by reading the type definitions.</li>
+        <li><b>A type that did not match.</b> Partial tool arguments are typed as an object but arrived as a JSON string in SDK 1.0.5. The first live-draft attempt failed on that.</li>
+        <li><b>Rules to learn.</b> A paused run must send a state and a messages snapshot first, and an activity message has to be included in that snapshot or the client drops it.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>When it earns its place</h2>
+  <div class="cols">
+    <div>
+      <h3>Worth it</h3>
+      <ul>
+        <li>The agent changes something on screen besides chat text: a document, a board, a form.</li>
+        <li>A run has to stop for a person and continue later, possibly on another server.</li>
+        <li>The agent should drive the UI, or more than one agent speaks at once.</li>
+        <li>You expect to swap the backend. The protocol has adapters for agent frameworks such as LangGraph, so the same UI should work against one. That was not tested here.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Skip it</h3>
+      <ul>
+        <li>A plain chat box that only streams text. Raw text chunks over SSE are less to learn and less to send.</li>
+        <li>A one-shot call with no streaming, no tools and no shared state.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Built from the code in <code>alteredcraft/ag-ui-demo</code>: <code>server/agent.ts</code> and <code>src/main.ts</code> (Test Kitchen), <code>server/tribunal.ts</code> and <code>src/tribunal/</code> (Tribunal). Event counts are from single test runs against a live model and vary run to run. AG-UI 1.0, <code>@ag-ui/client</code> 1.0.5.
+</footer>
+</div>
+</body>
+</html>

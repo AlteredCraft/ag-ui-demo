@@ -7,6 +7,8 @@ Two small apps that show what the [AG-UI](https://docs.ag-ui.com/introduction) p
 | **[The Test Kitchen](#the-test-kitchen)** (`/`) | Chat with a chef who writes an article brief onto a live ticket you can both edit | Shared state, streaming tool calls, activity progress, frontend tools, a choice interrupt |
 | **[The Tribunal](#the-tribunal)** (`/tribunal.html`) | Pitch an idea to three judges who react at the same time, argue back, get a verdict | Parallel subagents on one stream, a form interrupt generated from a schema |
 
+**[Visual guide](docs/guide/index.html):** how each demo uses AG-UI, with diagrams, and what the same apps would need without it. Open the file in a browser, or visit http://localhost:5173/docs/guide/index.html while the dev server is running.
+
 ## Run it
 
 ```bash

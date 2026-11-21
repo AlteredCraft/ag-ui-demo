@@ -7,7 +7,7 @@ Two small apps that show what the [AG-UI](https://docs.ag-ui.com/introduction) p
 | **[The Test Kitchen](#the-test-kitchen)** (`/`) | Chat with a chef who writes an article brief onto a live ticket you can both edit | Shared state, streaming tool calls, activity progress, frontend tools, a choice interrupt |
 | **[The Tribunal](#the-tribunal)** (`/tribunal.html`) | Pitch an idea to three judges who react at the same time, argue back, get a verdict | Parallel subagents on one stream, a form interrupt generated from a schema |
 
-**[Visual guide](docs/index.html):** how each demo uses AG-UI, with diagrams, and what the same apps would need without it. The `docs/` folder is a ready-made GitHub Pages site: in the repository settings, set Pages to deploy from this branch and the `/docs` folder. Locally, open `docs/index.html` in a browser.
+**[Visual guide](https://alteredcraft.github.io/ag-ui-demo/):** how each demo uses AG-UI, with diagrams, and what the same apps would need without it. Its source is [`docs/index.html`](docs/index.html), published with GitHub Pages.
 
 ## Run it
 

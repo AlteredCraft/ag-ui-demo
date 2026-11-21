@@ -158,7 +158,7 @@ footer { font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--lin
         <text class="mm" x="440" y="173" text-anchor="middle">text · tool calls · state patches · progress · pauses</text>
       </svg>
     </div>
-    <figcaption>Every interaction in both demos is this one round trip, repeated. There is no second endpoint and no socket.</figcaption>
+    <figcaption>Every interaction in both demos is this one round trip, repeated. There is no second endpoint and no socket. That design has costs too, listed under <a href="#costs">What it cost</a>.</figcaption>
   </figure>
 </section>
 
@@ -388,7 +388,7 @@ footer { font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--lin
   </div>
 </section>
 
-<section>
+<section id="costs">
   <h2>What it cost, and what it did not do</h2>
   <div class="facts">
     <div><b>2</b><span>HTTP endpoints for two whole apps</span></div>
@@ -415,6 +415,14 @@ footer { font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--lin
         <li><b>Rules to learn.</b> A paused run must send a state and a messages snapshot first, and an activity message has to be included in that snapshot or the client drops it.</li>
       </ul>
     </div>
+    <div>
+      <h3>The price of a stateless server</h3>
+      <ul>
+        <li><b>The server speaks only when asked.</b> Events flow only inside a run, and every run starts with a browser request. With no socket, the agent cannot tell the user that a background job finished, or say anything between turns. Adding that means adding a second channel.</li>
+        <li><b>Requests grow.</b> The server keeps nothing, so every request carries the whole conversation and the whole state. In a scripted Kitchen run, the first request was 0.4 KB and the resume request after the pause was 4.3 KB. A long session resends its full history on every turn.</li>
+        <li><b>The browser holds the record.</b> The state and messages the server receives are whatever the browser sends. Both servers check their shape and length (<code>normalizeTicket</code>, <code>normalize</code>), but a user can still change a Tribunal score or an earlier message before the next request. An app that has to trust those values must sign them or keep its own copy, and at that point it has a server-side session again.</li>
+      </ul>
+    </div>
   </div>
 </section>
 
@@ -435,6 +443,7 @@ footer { font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--lin
       <ul>
         <li>A plain chat box that only streams text. Raw text chunks over SSE are less to learn and less to send.</li>
         <li>A one-shot call with no streaming, no tools and no shared state.</li>
+        <li>An agent that has to reach the user without being asked, such as when a long job finishes. AG-UI over HTTP only answers requests, so you would need a push channel alongside it.</li>
       </ul>
     </div>
   </div>
